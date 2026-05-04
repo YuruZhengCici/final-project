@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.13/lib/p5.min.js"></script>
+    <style>
+        h1 {
+            text-align: center;
+            font-family: "Georgia", serif;
+            font-size: 36px;
+        }
+        h2 {
+            text-align: center;
+            font-family: "Georgia", serif;
+            font-size: 28px;
+        }
+        h3 {
+            text-align: right;
+            font-family: "Georgia", serif;
+            font-size: 24px;
+        }
+        p {
+            text-align: left;
+            font-family: "Georgia", serif;
+            font-size: 16px;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>浮花游影</h1>
+    <h2>~ Floating Petals, Drifting Shadows ~</h2>
+    <h3>By Yuru Zheng</h3>
+    <img src="images/soundIcon.jpg" alt="sound icon" / width="40">
+    <p>Takashi Yoshimatsu - When a Bird Dreams of Moonbeams, for clarinet, cello and harp, Op.77 (1999)</p>
+    <hr>
+
+    <script>
+        const canvasWidth = 1200;
+        const canvasHeight = 800;
+        let lightpoints = [];
+        let waterTex;
+        let targetAngle1 = 180;
+        let targetAngle2 = 180;
+        let angle1=180;
+        let angle2=180;
+        let turn1= 0;
+        let turn2= 0;
+        let x1,x2,y1,y2;
+        let music = new Audio("music/When a Bird Dreams of Moonbeams.mp3");
+
+        function preload() {
+            waterTex =loadImage ("images/water.jpg");
+        }
+        function drawDarkWater(pg) {
+                pg.noStroke();
+                pg.fill(0, 0, 0, 100);
+                pg.rect(0, 0, canvasWidth, canvasHeight);
+            }
+        function petal(pg, size) {
+                pg.beginShape();
+                pg.vertex(0, 0);
+                pg.bezierVertex(size*0.3, size*0.1, size*0.7, size*0.6, 0, size);
+                pg.bezierVertex(-size*0.7, size*0.6, -size*0.3, size*0.1, 0, 0);
+                pg.endShape(CLOSE);
+            }
+        function drawFlower(pg, x, y, size, h ,s ,b) {
+                pg.push();
+                pg.translate(x,y);
+                pg.noStroke();
+                pg.rotate(random(360));
+                for (let i=0; i<4; i++){
+                    for (let j=0; j<7; j++) {
+                        pg.noStroke();
+                        pg.fill(h+1.5*j*j, s+j*1.5, b-j*1, 30+j*j);
+                        petal(pg, size*(1-j*(j+1)/42));
+                    }
+                    pg.noFill();
+                    strokeWeight(0.1);
+                    pg.stroke(h, 30, 50, 70);
+                    petal(pg, size);
+
+                    pg.stroke(color(h, 50, 60, 68));
+                    pg.strokeWeight(1.5*size*0.01);
+                    pg.rotate(-30);
+                    for (let k=0; k<5; k++) {
+                    let l=size*random(0.4, 0.6);
+                    pg.bezier(0, 0, (5-2*k)*size*0.01, l*0.5, (5-2*k)*size*0.01, l*0.5, 0, l);
+                    pg.rotate(12);
+                    }
+                    pg.rotate(-30);
+                    pg.rotate(90+random(-6, 6));
+                }
+                pg.pop();
+            }
+            function drawHydrangea(pg, cx, cy, radius, h, s, b) {
+                for (let i=0; i<radius*2.2; i++) {
+                    let angle = random(-180, 180);
+                    let r= radius*sqrt(random());
+                    let x= cx+cos(angle)*r;
+                    let y= cy+sin(angle)*r;
+                    let hi=h+random(-20, 20);
+                    let si=s+random(-5, 5);
+                    let bi=b-r*(r-10)*0.003;
+                    drawFlower(pg, x, y, random(15, 20)-(r-60)*0.08, hi, si, bi);
+                }
+            }
+            function  randomHSB() {
+                let type = random();
+                if (type<0.4) {
+                    return [190 + random(-10,10), 65,98];
+                }
+                else if (type<0.7) {
+                    return [240 + random(-10,10), 65, 100];
+                }
+                else if (type<0.9) {
+                    return [320 + random(-10,10), 45, 100];
+                }
+                else {
+                    return [240 + random(-10,10), 5, 100];
+                }
+            }
+            function drawHydrangeaBed(pg, spacing) {
+                lightpoints = [];
+                let flowerpoints = [];
+                for (let x=0; x<canvasWidth ; x += spacing) {
+                    for (let y=0; y<canvasHeight ; y += spacing) {
+                        let nx = x + random(-40, 40);
+                        let ny = y + random(-40, 40);
+                        if (random()<0.69) {
+                        flowerpoints.push({x:nx, y:ny});
+                        }
+                        if (random()<0.06) {
+                        lightpoints.push({x:nx, y:ny});
+                        }
+                    }   
+                }
+                flowerpoints = shuffle(flowerpoints);
+                for (let i=0; i<flowerpoints.length; i++) {
+                    let f=flowerpoints[i];
+                    let size = random(60, 100);
+                    let [h, s, b] = randomHSB();
+                    let bi = b+0.05*(i-flowerpoints.length);
+                    drawHydrangea(pg, f.x, f.y, size, h, s, bi);
+                }
+            }
+            function drawKoi(x, y, size, angle, h) {
+                push();
+                translate(x,y);
+                rotate(angle+180);
+
+                let t=frameCount*0.1;
+                let spine = [];
+                for (let i=0; i<21; i++) {
+                    let tt = i/20;
+                    let px = -size +tt*size*2;
+                    let py = sin(t*20-tt*120)*size*0.3*tt;
+                    spine.push({x:px, y:py});
+                }
+
+                fill(h, 95, 100, 98);
+                stroke(h, 80, 100, 60);
+                strokeWeight(3);
+                beginShape();
+                for (let i=0; i<21; i++) {
+                    let tt = i/20;
+                    let p=spine[i];
+                    let width= 1.1*size*(0.5*sin(tt*180))*(1-0.6*tt)*pow(1-tt, 1.4);
+                    if (i>7) {
+                        width+=size*0.0005*(81-(i-16)*(i-16));
+                    }
+                    vertex(p.x, p.y-width);
+                }
+                let tail=spine[20];
+                let tailSwing=-sin((frameCount+5)*2)*2;
+                vertex(tail.x+size*0.5, tail.y-size*0.3+tailSwing);
+                vertex(tail.x+size*0.2, tail.y);
+                vertex(tail.x+size*0.5, tail.y+size*0.3+tailSwing);
+                for (let i=20; i>-1; i--) {
+                    let tt = i/20;
+                    let p=spine[i];
+                    let width= 1.1*size*(0.5*sin(tt*180))*(1-0.6*tt)*pow(1-tt, 1.4);
+                    if (i>7) {
+                        width+=size*0.0005*(81-(i-16)*(i-16));
+                    }
+                    vertex(p.x, p.y+width);
+                }
+                endShape(CLOSE);
+
+                let fin=spine[4];
+                let finSwing=-sin(frameCount*2)*3;
+                translate(fin.x, fin.y);
+                fill(h, 95, 100, 96);
+                stroke(h, 80, 100, 60);
+                strokeWeight(3);
+                rotate(finSwing);
+                triangle(0, -size*0.08, size*0.35, -size*0.45, size*0.18, -size*0.05);
+                rotate(-finSwing);
+                rotate(finSwing);
+                triangle(0, size*0.08, size*0.35, size*0.45, size*0.18, size*0.05);
+                rotate(-finSwing);
+                drawingContext.shadowBlur = 0;
+                pop();
+            }
+            function drawLight(pg) {
+                pg.blendMode(ADD);
+                pg.noStroke();
+                for (let p of lightpoints) {
+                    pg.drawingContext.shadowBlur = 60;
+                    pg.drawingContext.shadowColor = color(55, 8, 100, random(10,20));
+                    for (let i=0; i<12; i++) {
+                        pg.fill(55, 3, 100, 8);
+                        pg.ellipse(random(p.x-35, p.x+35), random(p.y-35, p.y+35), random(60, 80), random(60, 80));
+                    }
+                }
+                pg.drawingContext.shadowBlur = 0;
+                pg.blendMode(BLEND);
+            }
+        function setup() {
+
+            let cnv=createCanvas(canvasWidth, canvasHeight);
+            cnv.style('display', 'block');
+            cnv.style('margin', 'auto');
+            //canvas.parent(document.querySelector(".canvas"));
+            bg= createGraphics(canvasWidth, canvasHeight);
+            lightLayer = createGraphics(canvasWidth, canvasHeight);
+            colorMode(HSB, 360, 100, 100, 100);
+            angleMode(DEGREES);
+            bg.colorMode(HSB, 360, 100, 100, 100);
+            bg.angleMode(DEGREES);
+            x1=random(0.2*canvasWidth, 0.8*canvasWidth);
+            y1=random(0.2*canvasHeight, 0.8*canvasHeight);
+            x2=random(0.2*canvasWidth, 0.8*canvasWidth);
+            y2=random(0.2*canvasHeight, 0.8*canvasHeight);
+            lightLayer.colorMode(HSB, 360, 100, 100, 100);
+            lightLayer.angleMode(DEGREES);
+            waterTex.filter(GRAY);
+            waterTex.loadPixels();
+            let threshold = 75;
+            for (let i=0; i<waterTex.pixels.length; i +=4) {
+                let r=waterTex.pixels[i];
+                let g=waterTex.pixels[i+1];
+                let b=waterTex.pixels[i+2];
+                let br=(r+g+b)/3;
+                if (br<threshold) {
+                    waterTex.pixels[i]=0;
+                    waterTex.pixels[i+1]=0;
+                    waterTex.pixels[i+2]=0;
+                }
+            }
+            waterTex.updatePixels();
+            bg.background(0, 0, 100);
+            drawDarkWater(bg);
+            drawHydrangeaBed(bg, 120);
+            drawLight(lightLayer);
+        }
+        
+        function draw() {
+            background(0);
+            image(bg, 0, 0);
+
+            let t=frameCount*0.001;
+            if (frameCount>turn1) {
+                targetAngle1=angle1+random(-120, 120);
+                turn1=frameCount+int(random(114,514));
+            }
+            x1+= cos(targetAngle1)*1.2;
+            y1+= sin(targetAngle1)*1.2;
+            if (x1<0 || x1>canvasWidth) {
+                targetAngle1=180-targetAngle1;
+            }
+            if (y1<0 || y1>canvasHeight) {
+                targetAngle1=-targetAngle1;
+            }
+            angle1 += (targetAngle1-angle1)*0.1;
+
+            if (frameCount>turn2) {
+                targetAngle2=angle2+random(-120, 120);
+                turn2=frameCount+int(random(114,514));
+            }
+            x2+= cos(targetAngle2)*1.4;
+            y2+= sin(targetAngle2)*1.4;
+            if (x2<0 || x2>canvasWidth) {
+                targetAngle2=180-targetAngle2;
+            }
+            if (y2<0 || y2>canvasHeight) {
+                targetAngle2=-targetAngle2;
+            }
+            angle2 += (targetAngle2-angle2)*0.08;
+
+            drawKoi(x1, y1, 48, angle1, 10);
+            drawKoi(x2, y2, 32, angle2, 30);
+            blendMode(ADD);
+            tint(255, 28);
+            image(waterTex, sin(frameCount*0.35)*canvasWidth*0.02-canvasWidth*0.1, cos(frameCount*0.35)*canvasHeight*0.02-canvasHeight*0.1, canvasWidth*1.2, canvasHeight*1.2);
+            noTint();
+            blendMode(BLEND);
+            image(lightLayer, 0, 0);
+        }
+    function playmusic() {
+        music.play();
+    }
+    let soundIcon =document.getElementsByTagName("img")[0];
+    soundIcon.addEventListener("click", playmusic);
+    </script>
+</body>
+</html>
